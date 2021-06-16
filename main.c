@@ -1,20 +1,27 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <dbus/dbus.h>
 #include "monitor.h"
 #include "message.h"
 #include "method_call_cache.h"
 
 static DBusHandlerResult log_message(DBusConnection* conn, DBusMessage* msg, void* userdata);
-static void free_userdata(void* userdata);
+
+bool running = true;
+void handle_exit_signal(int signum)
+{
+    (void)(signum);
+    running = false;
+}
 
 int main()
 {
     //  建立连接
     DBusError err;
     dbus_error_init(&err);
-    DBusConnection* conn = dbus_bus_get(DBUS_BUS_SESSION, &err);
+    DBusConnection* conn = dbus_bus_get_private(DBUS_BUS_SESSION, &err);
     if(conn == NULL)
     {
         fprintf(stderr, "%s:%s\n", err.name, err.message);
@@ -33,9 +40,19 @@ int main()
     MethodCallCache* cache = new_method_call_cache(64);
 
     // 设置监视回调函数
-    dbus_connection_add_filter(conn, log_message, cache, (void(*)(void*))free_method_call_cache);
+    dbus_connection_add_filter(conn, log_message, cache, NULL);
     
-    while(dbus_connection_read_write_dispatch(conn, -1));
+    // 绑定信号
+    signal(SIGKILL, handle_exit_signal);
+    signal(SIGTERM, handle_exit_signal);
+    signal(SIGINT, handle_exit_signal);
+
+    // DBus主循环
+    running = true;
+    while(running && dbus_connection_read_write_dispatch(conn, -1));
+    free_method_call_cache(cache);
+    dbus_connection_close(conn);
+    dbus_connection_unref(conn);
 }
 
 /***********************************************************************************
@@ -50,8 +67,8 @@ static DBusHandlerResult log_message(DBusConnection* conn, DBusMessage* msg, voi
 
     if(dbus_message_is_signal(msg, DBUS_INTERFACE_LOCAL, "Disconnected"))
     {
-        free_method_call_cache(cache);
-        exit (0);
+        running = false;
+        return DBUS_HANDLER_RESULT_HANDLED;
     }
 
     int msg_type = dbus_message_get_type(msg);
@@ -68,7 +85,14 @@ static DBusHandlerResult log_message(DBusConnection* conn, DBusMessage* msg, voi
             break;
         }
 
-    case DBUS_MESSAGE_TYPE_ERROR:
+        case DBUS_MESSAGE_TYPE_METHOD_RETURN:
+        {
+            dbus_uint32_t serial = dbus_message_get_reply_serial(msg);
+            remove_method_call_cache(cache, serial);
+            break;
+        }
+
+        case DBUS_MESSAGE_TYPE_ERROR:
         {
             // 查找缓存
             dbus_uint32_t serial = dbus_message_get_reply_serial(msg);

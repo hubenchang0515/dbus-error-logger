@@ -42,13 +42,34 @@ void free_method_call_cache(MethodCallCache* cache)
             if(msg != NULL)
             {
                 dbus_message_unref(msg);
+                cache->messages[i] = NULL;
             }
         }
         free(cache->messages);
+        cache->messages = NULL;
     }
 
     if(cache != NULL)
         free(cache);
+}
+
+/***********************************************************************************
+ * @brief 从缓冲区中删除一个数据
+ * @param[in] cache 缓冲区
+ * @param[in] serial 调用的序列号
+ * *********************************************************************************/
+void remove_method_call_cache(MethodCallCache* cache, size_t serial)
+{
+    if(cache == NULL)
+        return;
+
+    size_t index = serial % cache->length;
+    DBusMessage* saved = cache->messages[index];
+    if(saved != NULL)
+    {
+        dbus_message_unref(saved);
+        cache->messages[index] = NULL;
+    }
 }
 
 /***********************************************************************************

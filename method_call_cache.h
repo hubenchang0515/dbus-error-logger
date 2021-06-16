@@ -25,6 +25,13 @@ MethodCallCache* new_method_call_cache(size_t length);
 void free_method_call_cache(MethodCallCache* cache);
 
 /***********************************************************************************
+ * @brief 从缓冲区中删除一个数据
+ * @param[in] cache 缓冲区
+ * @param[in] serial 调用的序列号
+ * *********************************************************************************/
+void remove_method_call_cache(MethodCallCache* cache, size_t serial);
+
+/***********************************************************************************
  * @brief 从缓冲区中读取一个数据
  * @param[in] cache 缓冲区
  * @param[in] serial 调用的序列号
