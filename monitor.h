@@ -7,11 +7,11 @@
 
 /***********************************************************************************
  * @brief 申请成为监视器
- * @param[in] conn DBus连接
  * @param[in] filter 过滤规则
  * @param[in] len filter的长度
  * @param[out] err DBus错误消息
+ * @return DBus私有连接
  * *********************************************************************************/
-void become_monitor(DBusConnection* conn, char* filter[], size_t len, DBusError* err);
+DBusConnection* become_monitor(char* filter[], size_t len, DBusError* err);
 
 #endif // DBUS_MONITOR_H

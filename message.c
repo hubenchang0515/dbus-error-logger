@@ -16,7 +16,7 @@ void print_message(DBusMessage* message)
 {
 
     char* str = decode_message(message);
-    printf("%s\n", str);
+    printf("%s", str);
     free(str);
 }
 

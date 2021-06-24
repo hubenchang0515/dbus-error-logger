@@ -5,13 +5,20 @@
 
 /***********************************************************************************
  * @brief 申请成为监视器
- * @param[in] conn DBus连接
  * @param[in] filter 过滤规则
  * @param[in] len filter的长度
  * @param[out] err DBus错误消息
+ * @return DBus私有连接
  * *********************************************************************************/
-void become_monitor(DBusConnection* conn, char* filter[], size_t len, DBusError* err)
+DBusConnection* become_monitor(char* filter[], size_t len, DBusError* err)
 {
+    //  建立DBus连接
+    DBusConnection* conn = dbus_bus_get_private(DBUS_BUS_SESSION, err);
+    if(conn == NULL || dbus_error_is_set(err))
+    {
+        return NULL;
+    }
+
     dbus_connection_set_route_peer_messages(conn, TRUE);
 
     DBusMessage* request = dbus_message_new_method_call("org.freedesktop.DBus",
@@ -36,9 +43,16 @@ void become_monitor(DBusConnection* conn, char* filter[], size_t len, DBusError*
         goto failed1;
     }
 
+    dbus_message_unref(response);
+    dbus_message_unref(request);
+    return conn;
+
 failed1:
     dbus_message_unref(response);
 failed0:
     dbus_message_unref(request);
+    dbus_connection_close(conn);
+    dbus_connection_unref(conn);
+    return NULL;
 }
 

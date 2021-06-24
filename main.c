@@ -5,7 +5,8 @@
 #include <dbus/dbus.h>
 #include "monitor.h"
 #include "message.h"
-#include "method_call_cache.h"
+#include "message_cache.h"
+#include "proc.h"
 
 static DBusHandlerResult log_message(DBusConnection* conn, DBusMessage* msg, void* userdata);
 
@@ -21,36 +22,30 @@ int main()
     //  建立连接
     DBusError err;
     dbus_error_init(&err);
-    DBusConnection* conn = dbus_bus_get_private(DBUS_BUS_SESSION, &err);
-    if(conn == NULL)
-    {
-        fprintf(stderr, "%s:%s\n", err.name, err.message);
-        return EXIT_FAILURE;
-    }
 
     // 成为监视器
-    become_monitor(conn, NULL, 0, &err);
-    if(dbus_error_is_set(&err))
+    DBusConnection* conn = become_monitor(NULL, 0, &err);
+    if(conn == NULL || dbus_error_is_set(&err))
     {
         fprintf(stderr, "%s:%s\n", err.name, err.message);
         return EXIT_FAILURE;
     }
 
     // 创建函数调用的缓存
-    MethodCallCache* cache = new_method_call_cache(64);
+    message_cache_t* cache = message_cache_new(64);
 
     // 设置监视回调函数
     dbus_connection_add_filter(conn, log_message, cache, NULL);
     
     // 绑定信号
-    signal(SIGKILL, handle_exit_signal);
-    signal(SIGTERM, handle_exit_signal);
     signal(SIGINT, handle_exit_signal);
+    signal(SIGTERM, handle_exit_signal);
+    signal(SIGHUP, handle_exit_signal);
 
     // DBus主循环
     running = true;
     while(running && dbus_connection_read_write_dispatch(conn, -1));
-    free_method_call_cache(cache);
+    message_cache_free(cache);
     dbus_connection_close(conn);
     dbus_connection_unref(conn);
 }
@@ -63,7 +58,7 @@ int main()
  * *********************************************************************************/
 static DBusHandlerResult log_message(DBusConnection* conn, DBusMessage* msg, void* userdata)
 {
-    MethodCallCache* cache = userdata;
+    message_cache_t* cache = userdata;
 
     if(dbus_message_is_signal(msg, DBUS_INTERFACE_LOCAL, "Disconnected"))
     {
@@ -81,14 +76,14 @@ static DBusHandlerResult log_message(DBusConnection* conn, DBusMessage* msg, voi
             DBusMessage* copy = dbus_message_copy(msg);
             dbus_message_set_serial(copy, serial);
             // 存入缓存
-            set_method_call_cache(cache, copy);
+            message_cache_set(cache, copy);
             break;
         }
 
         case DBUS_MESSAGE_TYPE_METHOD_RETURN:
         {
             dbus_uint32_t serial = dbus_message_get_reply_serial(msg);
-            remove_method_call_cache(cache, serial);
+            message_cache_remove(cache, serial);
             break;
         }
 
@@ -96,10 +91,21 @@ static DBusHandlerResult log_message(DBusConnection* conn, DBusMessage* msg, voi
         {
             // 查找缓存
             dbus_uint32_t serial = dbus_message_get_reply_serial(msg);
-            DBusMessage* saved = get_method_call_cache(cache, serial);
+            DBusMessage* saved = message_cache_get(cache, serial);
             if(saved != NULL)
             {
+                const char* sender = dbus_message_get_sender(saved);
+                const char* destination = dbus_message_get_destination(saved);
+                uint32_t sender_pid = proc_get_pid_by_dbus(sender);
+                uint32_t destination_pid = proc_get_pid_by_dbus(destination);
+                char exe[PATH_MAX+1];
+                proc_get_exec_path(sender_pid, exe);
+                printf("\nsender: PID(%u) NAME(%s) EXE(%s)\n", sender_pid, sender, exe);
+                proc_get_exec_path(destination_pid, exe);
+                printf("destination: PID(%u) NAME(%s) EXE(%s)\n", destination_pid, destination, exe);
+                printf("details:\n >>> ");
                 print_message(saved);
+                printf(" <<< ");
                 print_message(msg);
             }
             else

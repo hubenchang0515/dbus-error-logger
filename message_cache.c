@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "method_call_cache.h"
+#include "message_cache.h"
 
 /***********************************************************************************
  * @brief 创建一个缓冲区
@@ -9,9 +9,9 @@
  * @param[in] length 元素的数量
  * @return 缓冲期
  * *********************************************************************************/
-MethodCallCache* new_method_call_cache(size_t length)
+message_cache_t* message_cache_new(size_t length)
 {
-    MethodCallCache* cache = malloc(sizeof(MethodCallCache));
+    message_cache_t* cache = malloc(sizeof(message_cache_t));
     if(cache == NULL)
     {
         fprintf(stderr, "bad alloc\n");
@@ -32,7 +32,7 @@ MethodCallCache* new_method_call_cache(size_t length)
  * @brief 释放一个缓冲区
  * @param[in] cache 要释放的缓冲区
  * *********************************************************************************/
-void free_method_call_cache(MethodCallCache* cache)
+void message_cache_free(message_cache_t* cache)
 {
     if(cache != NULL && cache->messages != NULL)
     {
@@ -58,7 +58,7 @@ void free_method_call_cache(MethodCallCache* cache)
  * @param[in] cache 缓冲区
  * @param[in] serial 调用的序列号
  * *********************************************************************************/
-void remove_method_call_cache(MethodCallCache* cache, size_t serial)
+void message_cache_remove(message_cache_t* cache, size_t serial)
 {
     if(cache == NULL)
         return;
@@ -78,7 +78,7 @@ void remove_method_call_cache(MethodCallCache* cache, size_t serial)
  * @param[in] serial 调用的序列号
  * @return DBus调用的消息
  * *********************************************************************************/
-DBusMessage* get_method_call_cache(MethodCallCache* cache, size_t serial)
+DBusMessage* message_cache_get(message_cache_t* cache, size_t serial)
 {
     if(cache == NULL)
         return NULL;
@@ -92,7 +92,7 @@ DBusMessage* get_method_call_cache(MethodCallCache* cache, size_t serial)
  * @param[in] cache 缓冲区
  * @param[in] message DBus调用的消息
  * *********************************************************************************/
-void set_method_call_cache(MethodCallCache* cache, DBusMessage* message)
+void message_cache_set(message_cache_t* cache, DBusMessage* message)
 {
     if(cache == NULL)
         return;
