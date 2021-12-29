@@ -1,0 +1,25 @@
+{
+    "targets": [
+        {
+            "name": "dbus-error-logger",
+            "type": "executable",
+            "cc": "gcc",
+            "cxx": "g++",
+            "cflags": "-O2 -W -Wall `pkg-config --cflags dbus-1`",
+            "cxxflags": "-O2 -W -Wall",
+            "ar": "ar",
+            "arflags": "rcs",
+            "libs": "`pkg-config --libs dbus-1`",
+            "install": "/usr/bin",
+            "cmd": "",
+            "sources": [
+                "message.c",
+                "monitor.c",
+                "proc.c",
+                "message_cache.c",
+                "main.c"
+            ],
+            "depends": []
+        }
+    ]
+}
