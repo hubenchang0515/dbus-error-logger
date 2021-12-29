@@ -61,6 +61,7 @@ int main()
  * *********************************************************************************/
 static DBusHandlerResult log_message(DBusConnection* conn, DBusMessage* msg, void* userdata)
 {
+    (void)(conn);
     message_cache_t* cache = userdata;
 
     if(dbus_message_is_signal(msg, DBUS_INTERFACE_LOCAL, "Disconnected"))

@@ -50,6 +50,7 @@ static char* indent(char** str, size_t* max, int depth)
     {
         snprintf_alloc(str, max, "%s  ", *str);
     }
+    return *str;
 }
 
 /***********************************************************************************
@@ -66,7 +67,7 @@ bool snprintf_alloc(char** str, size_t* max, const char* fmt, ...)
     va_list args;
     va_start(args, fmt);
     int len = vsnprintf(dst, n, fmt, args);
-    if(len > n)
+    if(len > 0 && (size_t)(len) > n)
     {
         char* m = realloc(dst, len + 1);
         if(m == NULL)
