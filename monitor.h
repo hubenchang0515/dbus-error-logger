@@ -12,6 +12,6 @@
  * @param[out] err DBus错误消息
  * @return DBus私有连接
  * *********************************************************************************/
-DBusConnection* become_monitor(char* filter[], size_t len, DBusError* err);
+DBusConnection* become_monitor(DBusBusType type, char* filter[], size_t len, DBusError* err);
 
 #endif // DBUS_MONITOR_H

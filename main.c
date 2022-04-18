@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <string.h>
 #include <dbus/dbus.h>
 #include "monitor.h"
 #include "message.h"
@@ -17,7 +18,7 @@ void handle_exit_signal(int signum)
     running = false;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
     // 使用行缓冲，方便通过管道处理
     setvbuf(stdout, NULL, _IOLBF, 128);
@@ -27,7 +28,22 @@ int main()
     dbus_error_init(&err);
 
     // 成为监视器
-    DBusConnection* conn = become_monitor(NULL, 0, &err);
+    DBusConnection* conn = NULL;
+    if (argc == 2 && strcmp(argv[1], "system") == 0)
+    {
+        conn = become_monitor(DBUS_BUS_SYSTEM, NULL, 0, &err);
+    }
+    else if (argc == 1 || (argc == 2 && strcmp(argv[1], "session") == 0))
+    {
+        conn = become_monitor(DBUS_BUS_SESSION, NULL, 0, &err);
+    }
+    else
+    {
+        printf("Usage: %s        - monitor session bus\n", argv[0]);
+        printf("       %s system - monitor system bus\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
     if(conn == NULL || dbus_error_is_set(&err))
     {
         fprintf(stderr, "%s:%s\n", err.name, err.message);
@@ -51,6 +67,8 @@ int main()
     message_cache_free(cache);
     dbus_connection_close(conn);
     dbus_connection_unref(conn);
+
+    return EXIT_SUCCESS;
 }
 
 /***********************************************************************************

@@ -10,10 +10,10 @@
  * @param[out] err DBus错误消息
  * @return DBus私有连接
  * *********************************************************************************/
-DBusConnection* become_monitor(char* filter[], size_t len, DBusError* err)
+DBusConnection* become_monitor(DBusBusType type, char* filter[], size_t len, DBusError* err)
 {
     //  建立DBus连接
-    DBusConnection* conn = dbus_bus_get_private(DBUS_BUS_SESSION, err);
+    DBusConnection* conn = dbus_bus_get_private(type, err);
     if(conn == NULL || dbus_error_is_set(err))
     {
         return NULL;
